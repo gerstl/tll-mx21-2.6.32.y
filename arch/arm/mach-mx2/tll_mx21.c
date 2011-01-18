@@ -50,6 +50,17 @@
 
 #include "devices.h"
 
+#if defined (CONFIG_I2C_IMX)
+#include <linux/i2c.h>
+#endif
+
+
+#if defined (CONFIG_SPI_IMX)
+#include <linux/spi/spi.h>
+#endif
+
+
+
 #if defined (CONFIG_USB_IMX21_HCD)
 #include <asm/arch/imx21-hcd.h>
 #define OTG_TXCVR_VENDOR_ID_REG0                0x00
@@ -90,17 +101,62 @@ static unsigned int tll_mx21_pins[] = {
 	(9  | GPIO_PORTC | GPIO_PF | GPIO_OUT ),   // USBG_OE (H13)
 	(13 | GPIO_PORTC | GPIO_PF | GPIO_OUT ),   // USBG_ON (D13)
 #endif
+
+#if defined (CONFIG_I2C_IMX)
+	(18 | GPIO_PORTD | GPIO_PF ), //I2C_CLK (C18)
+	(17 | GPIO_PORTD | GPIO_PF ), //I2C_DATA (B18)
+#endif
+
+#if defined (CONFIG_SPI_IMX)
+	(24 | GPIO_PORTD | GPIO_PF ), //CSPI2_MOSI (E19)
+	(23 | GPIO_PORTD | GPIO_PF ), //CSPI2_MISO (E17)
+	(22 | GPIO_PORTD | GPIO_PF ), //CSPI2_SCLK (D19)
+//	(21 | GPIO_PORTD | GPIO_PF ), //CSPI2_SSO (D18)
+//	(20 | GPIO_PORTD | GPIO_PF ), //CSPI2_SS1 (C19)
+//	(19 | GPIO_PORTD | GPIO_PF ), //CSPI2_SS2 (B19)
+#endif
+
 #if defined (CONFIG_FB_IMX)
-	(29 | GPIO_OUT | GPIO_PORTA | GPIO_GPIO | GPIO_PUEN), // LCD backlight enable
+	(5 | GPIO_PORTA | GPIO_PF), //LSCLK (F4)
+	(6 | GPIO_PORTA | GPIO_PF), //LD0 (D2)
+	(7 | GPIO_PORTA | GPIO_PF), //LD1 (C1)
+	(8 | GPIO_PORTA | GPIO_PF), //LD2 (D1)
+	(9 | GPIO_PORTA | GPIO_PF), //LD3 (C2)
+	(10 | GPIO_PORTA | GPIO_PF), //LD4 (E2)
+	(11 | GPIO_PORTA | GPIO_PF), //LD5 (B2)
+	(12 | GPIO_PORTA | GPIO_PF), //LD6 (C3)
+	(13 | GPIO_PORTA | GPIO_PF), //LD7 (B1)
+	(14 | GPIO_PORTA | GPIO_PF), //LD8 (E1)
+	(15 | GPIO_PORTA | GPIO_PF), //LD9 (A1)
+	(16 | GPIO_PORTA | GPIO_PF), //LD10 (C4)
+	(17 | GPIO_PORTA | GPIO_PF), //LD11 (B3)
+	(18 | GPIO_PORTA | GPIO_PF), //LD12 (A2)
+	(19 | GPIO_PORTA | GPIO_PF), //LD13 (D3)
+	(20 | GPIO_PORTA | GPIO_PF), //LD14 (A3)
+	(21 | GPIO_PORTA | GPIO_PF), //LD15 (E3)
+	(22 | GPIO_PORTA | GPIO_PF), //LD16 (B4)
+	(23 | GPIO_PORTA | GPIO_PF), //LD17 (C5)
+	(24 | GPIO_PORTA | GPIO_PF), //REV (A4)
+	(25 | GPIO_PORTA | GPIO_PF), //CLS (D4)
+	(26 | GPIO_PORTA | GPIO_PF), //PS (B5)
+	(27 | GPIO_PORTA | GPIO_PF), //SPL_SPR (E4)
+	(28 | GPIO_PORTA | GPIO_PF), //HSYNC (A5)
+	(29 | GPIO_PORTA | GPIO_PF), //VSYNC (C6)
+	(30 | GPIO_PORTA | GPIO_PF), //CONTRAST (B6)
+	(31 | GPIO_PORTA | GPIO_PF), //OE_ACD (A6)
+//	(29 | GPIO_OUT | GPIO_PORTA | GPIO_GPIO | GPIO_PUEN), // LCD backlight enable
 #endif
 #if defined (CONFIG_SMSC911X)
 	(0 | GPIO_PORTF | GPIO_GPIO | GPIO_IN),		// etherernet interrupt
 #endif
+
 };
 
 #if defined (CONFIG_FB_IMX)
 #include <linux/fb.h>
 #include <mach/imxfb.h>
+
+
 
 static struct imx_fb_videomode vcmx212_fb_modes[] = {
 	{
@@ -109,14 +165,15 @@ static struct imx_fb_videomode vcmx212_fb_modes[] = {
 			.pixclock	= 65536,
 			.xres		= 240,
 			.yres		= 320,
-			.hsync_len	= 0xff,
-			.vsync_len	= 0x1,  
+			.hsync_len	= 0x1e,
+			.vsync_len	= 0x3,  
 			.left_margin	= 0xa,
 			.upper_margin	= 0x6,
 			.right_margin	= 0xe,
 			.lower_margin	= 0x5,
 		},
-		.pcr	 	= 0xcac80083,
+		//.pcr	 	= 0xcac80083,
+		.pcr		= 0xcae80084, //aditya
 		.bpp		= 16,
 	},
 };
@@ -158,7 +215,7 @@ static struct imx_fb_platform_data vcmx212_fb_info = {
 
 	.pwmr		= 0,
 	.lscr1		= 0x400c0373, 
-	.dmacr		= 0x00020008,
+	.dmacr		= 0x00020008, //can be 40008
 
 	.init = tllmx21_fb_init,
 	.exit = tllmx21_fb_exit,
@@ -166,6 +223,37 @@ static struct imx_fb_platform_data vcmx212_fb_info = {
 };
 
 #endif /* defined(CONFIG_FB_IMX) */
+
+#if defined (CONFIG_I2C_IMX)
+
+static struct imxi2c_platform_data mx21_i2c_data = {
+	.bitrate = 100000,
+};
+
+static struct i2c_board_info mx21_i2c_devices[] = {
+};
+
+#endif
+
+
+#if defined (CONFIG_SPI_IMX)
+static struct spi_board_info mx21_spi_board_info[] __initdata = {
+	{
+		.modalias = "spidev",
+		.max_speed_hz = 1000000,
+		.bus_num = 1,
+		.chip_select = 0,
+	},
+};
+
+static int mx21_spi_cs[] = {GPIO_PORTD + 21, GPIO_PORTD + 20 , GPIO_PORTD + 19};
+
+static struct spi_imx_master mx21_spi_1_data = {
+	.chipselect = mx21_spi_cs,
+	.num_chipselect = ARRAY_SIZE(mx21_spi_cs),
+
+};
+#endif
 
 
 #ifdef CONFIG_SMSC911X
@@ -258,23 +346,41 @@ tll_mx21_init(void)
 	set_irq_type(TLL_MX21_ETH_IRQ,  IRQ_TYPE_LEVEL_LOW);	
 #endif
 	
+#if defined (CONFIG_I2C_IMX)
+	/*Configure I2C bus*/
+	i2c_register_board_info(1,mx21_i2c_devices,
+				ARRAY_SIZE(mx21_i2c_devices));
+	mxc_register_device(&mxc_i2c_device0, &mx21_i2c_data);
+#endif
+
+#if defined (CONFIG_SPI_IMX)
+	spi_register_board_info(mx21_spi_board_info,
+				ARRAY_SIZE(mx21_spi_board_info));
+	mxc_register_device(&mxc_spi_device0, &mx21_spi_1_data);
+#endif
+
 #if defined(CONFIG_FB_IMX)
-#if 0 // bdd - need to fix MPR3 setup ??? 
+//#if 0 // bdd - need to fix MPR3 setup ??? 
 	// Boost DMA priority of LCD over CPU
-	MAX_MPR3 	= 0x543021;  
-	LCDC_DMACR 	= 0x00040008;
-	LCDC_PCR 	= 0xcac80083; 
-#endif	
+//	MAX_MPR3 	= 0x543021;  
+//#endif	
 	printk("%s: LCD\n", __FUNCTION__);
 	mxc_register_device(&mxc_fb_device, &vcmx212_fb_info);
 	tllmx21_lcd_power(0);
 #endif
-	
+
+/*#if defined (CONFIG_SPI_IMX)
+	PCCR0 |= PCCR0_CSPI2_EN;	
+#endif	*/
+
 #if defined(CONFIG_USB_IMX21_HCD)
 	printk("IMX: USB HCD\n");
 	/* Enable the clocks to the USB OTG module */
-	PCCR0 |= PCCR0_HCLK_USBOTG_EN | PCCR0_USBOTG_EN;
+	PCCR0 |= PCCR0_HCLK_USBOTG_EN | PCCR0_USBOTG_EN ;
 
+#if defined (CONFIG_SPI_IMX)
+	PCCR0 |= PCCR0_CSPI2_EN;
+#endif
 	/* Reset the USB OTG module */
 	USBOTG_RST_CTRL = (USBOTG_RST_RSTCTRL |
 			USBOTG_RST_RSTFC   |
